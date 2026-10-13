@@ -9,10 +9,17 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Rectangle, Circle, FancyArrowPatch
 import streamlit as st
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Event AI | 행사장 설계 스튜디오", page_icon="🎪", layout="wide")
+# Streamlit 페이지 설정
+st.set_page_config(
+    page_title="이벤트 온 (Event-On) - AI 행사 자동 설계 플랫폼",
+    page_icon="🎪",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Korean font fallback: hosted environments may not include Korean fonts.
+# Korean font fallback
 plt.rcParams["axes.unicode_minus"] = False
 
 COLORS = {
@@ -39,7 +46,6 @@ def block(ax, x, y, w, d, h, color, label, fontsize=8):
     # Top face
     poly3(ax, [(x,y,h),(x+w,y,h),(x+w,y+d,h),(x,y+d,h)], color, zorder=6)
     # Front and side faces create a raised architectural model effect
-    shade = "#000000"
     front = [(x,y,0),(x+w,y,0),(x+w,y,h),(x,y,h)]
     side = [(x+w,y,0),(x+w,y+d,0),(x+w,y+d,h),(x+w,y,h)]
     poly3(ax, front, color, edge="#475569", zorder=4)
@@ -101,7 +107,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     for key, rx, ry, rw, rd, label in zone_specs:
         x,y,w,d = width*rx, depth*ry, width*rw, depth*rd
         block(ax, x,y,w,d,.35,COLORS[key],label,7)
-        # small booth markers inside experience/partner/food zones
         if key in ("연대·협력존","체험존","푸드존"):
             for i in range(3):
                 bx=x+.25+i*(w-.65)/2
@@ -109,7 +114,7 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
                 poly3(ax,[(bx,by,.39),(bx+.42,by,.39),(bx+.42,by+.34,.39),(bx,by+.34,.39)],
                       "#FFF8E9",edge="#9A6A39",lw=.5,zorder=8)
 
-    # Gates and evacuation arrows (conceptual, not certified)
+    # Gates and evacuation arrows
     gate_xs = [width*.15, width*.50, width*.85] if gates >= 3 else [width*.5]
     for idx,gx in enumerate(gate_xs):
         p1=project(gx,0,.08)
@@ -126,11 +131,9 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     ax.text(p1[0],p1[1]+.15,"VIP / 물류 접근",ha="center",va="bottom",
             fontsize=8,color="#155A96",weight="bold",zorder=12)
 
-    # Dimension line / north arrow
     ax.text(project(width*.93,depth*.94,0)[0],project(width*.93,depth*.94,0)[1]+1.0,
             "N ↑",fontsize=10,weight="bold",color="#344054",zorder=15)
 
-    # Title and detail
     ax.text(.02,.97,name,transform=ax.transAxes,ha="left",va="top",
             fontsize=17,weight="bold",color="#182230")
     subtitle=f"{venue_type}  |  {width}m × {depth}m  |  예상 관람객 {visitors:,}명  |  콘셉트: {vibe}"
@@ -140,7 +143,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
             "CONCEPT MASTERPLAN · 배치 참고용 시안 / 실제 설치 전 현장 실측 및 안전 전문가 검토 필요",
             transform=ax.transAxes,fontsize=8,color="#697586",ha="left",va="bottom")
 
-    # Legend on right
     legend_items = ["무대","관람석","연대·협력존","체험존","푸드존","휴식존","운영본부","응급의료","화장실"]
     handles=[]
     for item in legend_items:
@@ -161,120 +163,368 @@ def scorecard(visitors, width, depth, gates):
     space=max(50,min(96,round(92 - density*14)))
     return {"안전 계획 지표":safety,"동선 계획 지표":flow,"접근성 지표":access,"공간 활용 지표":space}
 
+# 커스텀 스타일 정의 (사이드바 위/아래 완전 분리 및 넓은 여백 확보)
+st.markdown("""
+    <style>
+    /* 전체 배경 및 폰트 */
+    .stApp {
+        background-color: #F8FAFC;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    
+    /* 카드 컨테이너 스타일 */
+    .custom-card {
+        background-color: #FFFFFF;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #E2E8F0;
+        margin-bottom: 20px;
+    }
+
+    /* 뱃지 및 태그 디자인 */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+    .badge-excellent { background-color: #DCFCE7; color: #15803D; }
+    .badge-good { background-color: #DBEAFE; color: #1E40AF; }
+    .badge-warning { background-color: #FEF3C7; color: #B45309; }
+
+    /* AI 요약 박스 */
+    .reason-box {
+        background-color: #F0F9FF;
+        border-left: 4px solid #0284C7;
+        padding: 16px;
+        border-radius: 12px;
+        margin-top: 10px;
+        color: #0F172A;
+    }
+
+    /* Streamlit 버튼 커스텀 */
+    .stButton>button {
+        border-radius: 10px;
+        font-weight: 600;
+    }
+
+    /* 사이드바 flex 배치: 높이를 늘려 중간 여백을 넓게 확보 */
+    [data-testid="stSidebar"] > div:first-child {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 94vh;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 세션 상태 초기화
+if 'page' not in st.session_state:
+    st.session_state['page'] = 'home'
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = True
+if 'username' not in st.session_state:
+    st.session_state['username'] = "주은님"
 if "history" not in st.session_state:
-    st.session_state.history=[]
-if "user" not in st.session_state:
-    st.session_state.user="게스트"
-
-with st.sidebar:
-    st.markdown("## ✦ Event AI")
-    st.caption("행사장 공간 기획 · 배치 시안")
-    st.markdown("---")
-    st.markdown("### 계정")
-    username=st.text_input("프로젝트 사용자명",value=st.session_state.user)
-    if st.button("사용자 적용",use_container_width=True):
-        st.session_state.user=username.strip() or "게스트"
-        st.success("현재 세션에 적용했어요.")
-    st.markdown("---")
-    st.markdown("**빠른 메뉴**")
-    st.markdown("- 행사 조건 입력")
-    st.markdown("- 설계도 미리보기")
-    st.markdown("- 결과 이미지 다운로드")
-    st.markdown("- 설계 기록(JSON) 다운로드")
-    st.caption("데모 계정 기능이며, 실제 회원 DB/비밀번호 인증은 연결되어 있지 않습니다.")
-
-st.title("🎪 Event AI — 행사장 설계 스튜디오")
-st.write("행사 조건을 입력하면 구역 배치가 반영된 **아이소메트릭(입체 투시) 스타일 행사장 마스터플랜**을 생성합니다.")
-st.info("이 앱은 Archisketch의 공간 설계 접근 방식과 제공된 참고 이미지를 영감으로 만든 독립형 시안 생성기입니다. Archisketch 서비스에 직접 연결되거나 실제 CAD/BIM 도면을 검증하는 도구는 아닙니다.")
-
-with st.form("design_form"):
-    st.subheader("1. 행사 기본 조건")
-    c1,c2,c3=st.columns(3)
-    with c1:
-        event_name=st.text_input("행사명", "함께하는 미래 페스티벌")
-        venue_type=st.selectbox("행사장 유형",["야외 광장","실내 컨벤션 홀","체육관","캠퍼스/학교","도심 거리"])
-        indoor=venue_type in ["실내 컨벤션 홀","체육관"]
-    with c2:
-        visitors=st.number_input("예상 관람객 수",min_value=50,max_value=100000,step=250,value=5000)
-        duration=st.selectbox("운영 시간",["3시간 이내","3~6시간","6~10시간","종일"])
-        age=st.selectbox("주요 연령대",["전 연령","청소년·대학생","가족 단위","성인","시니어"])
-    with c3:
-        vibe=st.selectbox("원하는 분위기",["활기찬 페스티벌","차분한 힐링","전문적인 박람회","친환경·자연","미래지향적"])
-        ticket=st.selectbox("입장료",["무료","유료","초대권"])
-        gates=st.slider("출입구/대피 출구 개수",min_value=2,max_value=8,value=4)
-    st.subheader("2. 공간 크기와 구성")
-    a,b,c=st.columns(3)
-    with a:
-        width=st.slider("가로 길이 (m)",min_value=30,max_value=250,value=100,step=5)
-    with b:
-        depth=st.slider("세로 길이 (m)",min_value=30,max_value=250,value=80,step=5)
-    with c:
-        zone_count=st.slider("원하는 주요 구역 수",min_value=4,max_value=9,value=7)
-    notes=st.text_area("추가 요구사항", "중앙 관람 구역을 확보하고, 푸드존과 휴식존을 분리하며, 응급의료 구역은 외부 접근이 쉬운 곳에 배치")
-    submitted=st.form_submit_button("✨ 행사장 설계도 생성",use_container_width=True)
-
+    st.session_state.history = []
 if "design" not in st.session_state:
     st.session_state.design = {
-        "event_name":"함께하는 미래 페스티벌","venue_type":"야외 광장","visitors":5000,
-        "vibe":"활기찬 페스티벌","width":100,"depth":80,"gates":4,"duration":"6~10시간",
-        "age":"전 연령","ticket":"무료","notes":"중앙 관람 구역 확보","zone_count":7
+        "event_name": "함께하는 미래 페스티벌", "venue_type": "야외 광장", "visitors": 5000,
+        "vibe": "활기찬 페스티벌", "width": 100, "depth": 80, "gates": 4, "duration": "6~10시간",
+        "age": "전 연령", "ticket": "무료", "notes": "중앙 관람 구역 확보", "zone_count": 7
     }
 
-if submitted:
-    st.session_state.design={
-        "event_name":event_name,"venue_type":venue_type,"visitors":int(visitors),
-        "vibe":vibe,"width":width,"depth":depth,"gates":gates,"duration":duration,
-        "age":age,"ticket":ticket,"notes":notes,"zone_count":zone_count
-    }
-    st.session_state.history.append({"created_at":datetime.now().strftime("%Y-%m-%d %H:%M"),**st.session_state.design})
+# 사이드바 구성
+with st.sidebar:
+    # --- [상단 영역] 로고 및 메뉴 ---
+    with st.container():
+        if st.button("🎪 이벤트 온 (Event-On)", key="logo_btn", use_container_width=True, type="primary"):
+            st.session_state['page'] = 'home'
+            st.rerun()
 
-d=st.session_state.design
-st.markdown("---")
-st.subheader("2. 생성된 행사장 마스터플랜")
-fig=draw_plan(d["event_name"],d["venue_type"],d["width"],d["depth"],d["visitors"],d["vibe"],
-              d["venue_type"] in ["실내 컨벤션 홀","체육관"],d["gates"],d["zone_count"])
-st.pyplot(fig,use_container_width=True)
-img=io.BytesIO()
-fig.savefig(img,format="png",dpi=220,bbox_inches="tight",facecolor="white")
-plt.close(fig)
-st.download_button("⬇️ 행사장 설계도 PNG 다운로드",data=img.getvalue(),
-                   file_name="event_masterplan.png",mime="image/png",use_container_width=True)
+        st.caption("AI 기반 행사 공간 자동 설계 플랫폼")
+        st.divider()
+        
+        if st.button("🏠 홈 (대시보드)", key="nav_home", use_container_width=True):
+            st.session_state['page'] = 'home'
+            st.rerun()
+        if st.button("📐 행사장 설계 스튜디오", key="nav_studio", use_container_width=True):
+            st.session_state['page'] = 'studio'
+            st.rerun()
+        if st.button("⚙️ AI 설계 프로세스", key="nav_process", use_container_width=True):
+            st.session_state['page'] = 'process'
+            st.rerun()
 
-st.subheader("3. 설계 요약")
-m1,m2,m3,m4=st.columns(4)
-m1.metric("행사장 면적",f'{d["width"]*d["depth"]:,} m²')
-m2.metric("예상 관람객",f'{d["visitors"]:,}명')
-m3.metric("출입구/출구",f'{d["gates"]}개')
-m4.metric("운영 시간",d["duration"])
-scores=scorecard(d["visitors"],d["width"],d["depth"],d["gates"])
-cols=st.columns(len(scores))
-for col,(label,val) in zip(cols,scores.items()):
-    col.metric(label,f"{val}/100")
-st.caption("점수는 입력 조건을 바탕으로 한 데모용 휴리스틱 지표이며, 실제 안전성 인증이나 현장 검증 결과가 아닙니다.")
+    # --- [하단 영역] 주은님 프로필 및 로그아웃 ---
+    with st.container():
+        if st.session_state['logged_in']:
+            st.markdown(f"👤 **{st.session_state['username']}** 님 (총괄 기획)")
+            if st.button("로그아웃", key="sidebar_logout", use_container_width=True):
+                st.session_state['logged_in'] = False
+                st.rerun()
 
-st.subheader("4. 배치 원칙 및 운영 체크리스트")
-checks=[
-    "주 출입구와 비상 출구를 서로 다른 방향에 분산 배치하는 안을 현장 여건과 함께 검토",
-    "푸드존·체험존 대기열이 주 통로를 막지 않도록 대기 공간 별도 확보",
-    "응급의료 구역에서 외부 진입로까지 장비와 차량이 접근할 수 있는 경로 확보",
-    "화장실·휴식 공간은 주요 구역에서 찾기 쉽도록 안내 표지 계획",
-    "실제 행사 전 관할 기관, 시설 관리자, 안전 담당자의 검토 및 현장 실측 진행"
-]
-for item in checks:
-    st.checkbox(item,value=False,key="check_"+hashlib.md5(item.encode()).hexdigest()[:8])
+# 상단 헤더 영역
+top_col1, top_col2 = st.columns([3, 1])
+with top_col1:
+    st.title("🎪 이벤트 온 (Event-On)")
+with top_col2:
+    st.markdown("<div style='text-align: right; padding-top: 10px;'>", unsafe_allow_html=True)
+    if st.session_state['logged_in']:
+        with st.popover(f"👤 {st.session_state['username']}"):
+            st.write(f"**{st.session_state['username']}** (총괄 기획자)")
+            st.caption("이메일: user@event-on.ai")
+            st.divider()
+            if st.button("설정 관리", key="pop_settings"):
+                st.session_state['page'] = 'settings'
+                st.rerun()
+            if st.button("로그아웃", key="pop_logout"):
+                st.session_state['logged_in'] = False
+                st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-export_data={**d,"generated_at":datetime.now().isoformat(timespec="minutes"),
-             "area_m2":d["width"]*d["depth"],"demo_scores":scores,
-             "zones":["무대","관람석","연대·협력존","체험존","푸드존","휴식존","운영본부","응급의료","화장실"],
-             "additional_requirements":d["notes"]}
-st.download_button("🧾 설계 조건 JSON 다운로드",
-                   data=json.dumps(export_data,ensure_ascii=False,indent=2),
-                   file_name="event_design.json",mime="application/json")
-if st.session_state.history:
-    with st.expander("🕘 현재 세션의 설계 기록"):
-        st.dataframe(st.session_state.history,use_container_width=True)
-        st.download_button("설계 기록 CSV 다운로드",
-                           data=__import__("pandas").DataFrame(st.session_state.history).to_csv(index=False).encode("utf-8-sig"),
-                           file_name="event_design_history.csv",mime="text/csv")
-st.markdown("---")
-st.caption("제작 목적: 행사 공간 기획을 돕는 교육·시안용 프로토타입. 실제 시공 도면, 피난 계획, 군중 안전 검토를 대체하지 않습니다.")
+st.divider()
+
+# ==========================================
+# 1. 홈 화면 (Home Page)
+# ==========================================
+if st.session_state['page'] == 'home':
+    st.markdown("## 🚀 시작할 메뉴를 선택하세요")
+    st.caption("카드나 하단 버튼을 클릭하면 해당 작업 스튜디오로 이동합니다.")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_dash, col_studio = st.columns(2)
+
+    with col_dash:
+        dash_card_html = """
+        <div style="
+            background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%);
+            border: 2px solid #93C5FD;
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.12);
+            min-height: 270px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        ">
+            <h1 style="font-size: 3rem; margin: 0 0 12px 0;">📐</h1>
+            <h2 style="color: #1E3A8A; margin: 0 0 14px 0; font-size: 1.55rem;">행사장 설계 스튜디오 (Matplotlib 시안)</h2>
+            <p style="color: #475569; font-size: 1.02rem; line-height: 1.65; margin: 0;">
+                행사 조건과 세부 구역을 직접 입력하고 정밀한 아이소메트릭(입체 투시) 마스터플랜 도면을 생성하세요.<br>
+                PNG 이미지 다운로드 및 JSON 설계 데이터 내보내기를 지원합니다.
+            </p>
+        </div>
+        """
+        st.markdown(dash_card_html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("📐 행사장 설계 스튜디오 시작하기", key="btn_click_studio", type="primary", use_container_width=True):
+            st.session_state['page'] = 'studio'
+            st.rerun()
+
+    with col_studio:
+        proc_card_html = """
+        <div style="
+            background: linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%);
+            border: 2px solid #86EFAC;
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.12);
+            min-height: 270px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        ">
+            <h1 style="font-size: 3rem; margin: 0 0 12px 0;">⚙️</h1>
+            <h2 style="color: #065F46; margin: 0 0 14px 0; font-size: 1.55rem;">AI 설계 프로세스 및 메커니즘</h2>
+            <p style="color: #475569; font-size: 1.02rem; line-height: 1.65; margin: 0;">
+                기획부터 최종 배치안 도출까지의 다목적 최적화(Multi-objective Optimization) 과정을 살펴봅니다.<br>
+                군중 동선 예측, XAI(설명 가능한 AI) 설계 이유 및 안전성 평가 체계를 확인하세요.
+            </p>
+        </div>
+        """
+        st.markdown(proc_card_html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("⚙️ AI 설계 프로세스 확인하기", key="btn_click_proc", type="secondary", use_container_width=True):
+            st.session_state['page'] = 'process'
+            st.rerun()
+
+# ==========================================
+# 2. 행사장 설계 스튜디오 (Studio Page)
+# ==========================================
+elif st.session_state['page'] == 'studio':
+    st.markdown("## 📐 행사장 공간 기획 · 배치 시안 스튜디오")
+    st.info("행사 조건을 입력하면 구역 배치가 반영된 **아이소메트릭(입체 투시) 스타일 행사장 마스터플랜**을 생성합니다.")
+
+    with st.form("design_form"):
+        st.subheader("1. 행사 기본 조건")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            event_name = st.text_input("행사명", st.session_state.design["event_name"])
+            venue_type = st.selectbox("행사장 유형", ["야외 광장", "실내 컨벤션 홀", "체육관", "캠퍼스/학교", "도심 거리"],
+                                     index=["야외 광장", "실내 컨벤션 홀", "체육관", "캠퍼스/학교", "도심 거리"].index(st.session_state.design["venue_type"]))
+            indoor = venue_type in ["실내 컨벤션 홀", "체육관"]
+        with c2:
+            visitors = st.number_input("예상 관람객 수", min_value=50, max_value=100000, step=250, value=st.session_state.design["visitors"])
+            duration = st.selectbox("운영 시간", ["3시간 이내", "3~6시간", "6~10시간", "종일"],
+                                     index=["3시간 이내", "3~6시간", "6~10시간", "종일"].index(st.session_state.design["duration"]))
+            age = st.selectbox("주요 연령대", ["전 연령", "청소년·대학생", "가족 단위", "성인", "시니어"],
+                                index=["전 연령", "청소년·대학생", "가족 단위", "성인", "시니어"].index(st.session_state.design["age"]))
+        with c3:
+            vibe = st.selectbox("원하는 분위기", ["활기찬 페스티벌", "차분한 힐링", "전문적인 박람회", "친환경·자연", "미래지향적"],
+                                index=["활기찬 페스티벌", "차분한 힐링", "전문적인 박람회", "친환경·자연", "미래지향적"].index(st.session_state.design["vibe"]))
+            ticket = st.selectbox("입장료", ["무료", "유료", "초대권"],
+                                  index=["무료", "유료", "초대권"].index(st.session_state.design["ticket"]))
+            gates = st.slider("출입구/대피 출구 개수", min_value=2, max_value=8, value=st.session_state.design["gates"])
+        
+        st.subheader("2. 공간 크기와 구성")
+        a, b, c = st.columns(3)
+        with a:
+            width = st.slider("가로 길이 (m)", min_value=30, max_value=250, value=st.session_state.design["width"], step=5)
+        with b:
+            depth = st.slider("세로 길이 (m)", min_value=30, max_value=250, value=st.session_state.design["depth"], step=5)
+        with c:
+            zone_count = st.slider("원하는 주요 구역 수", min_value=4, max_value=9, value=st.session_state.design["zone_count"])
+        
+        notes = st.text_area("추가 요구사항", st.session_state.design["notes"])
+        submitted = st.form_submit_button("✨ 행사장 설계도 생성", use_container_width=True)
+
+    if submitted:
+        st.session_state.design = {
+            "event_name": event_name, "venue_type": venue_type, "visitors": int(visitors),
+            "vibe": vibe, "width": width, "depth": depth, "gates": gates, "duration": duration,
+            "age": age, "ticket": ticket, "notes": notes, "zone_count": zone_count
+        }
+        st.session_state.history.append({"created_at": datetime.now().strftime("%Y-%m-%d %H:%M"), **st.session_state.design})
+
+    d = st.session_state.design
+    st.markdown("---")
+    st.subheader("2. 생성된 행사장 마스터플랜")
+    fig = draw_plan(d["event_name"], d["venue_type"], d["width"], d["depth"], d["visitors"], d["vibe"],
+                    d["venue_type"] in ["실내 컨벤션 홀", "체육관"], d["gates"], d["zone_count"])
+    st.pyplot(fig, use_container_width=True)
+    
+    img = io.BytesIO()
+    fig.savefig(img, format="png", dpi=220, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    st.download_button("⬇️ 행사장 설계도 PNG 다운로드", data=img.getvalue(),
+                       file_name="event_masterplan.png", mime="image/png", use_container_width=True)
+
+    st.subheader("3. 설계 요약")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("행사장 면적", f'{d["width"]*d["depth"]:,} m²')
+    m2.metric("예상 관람객", f'{d["visitors"]:,}명')
+    m3.metric("출입구/출구", f'{d["gates"]}개')
+    m4.metric("운영 시간", d["duration"])
+    
+    scores = scorecard(d["visitors"], d["width"], d["depth"], d["gates"])
+    cols = st.columns(len(scores))
+    for col, (label, val) in zip(cols, scores.items()):
+        col.metric(label, f"{val}/100")
+    st.caption("점수는 입력 조건을 바탕으로 한 데모용 휴리스틱 지표이며, 실제 안전성 인증이나 현장 검증 결과가 아닙니다.")
+
+    st.subheader("4. 배치 원칙 및 운영 체크리스트")
+    checks = [
+        "주 출입구와 비상 출구를 서로 다른 방향에 분산 배치하는 안을 현장 여건과 함께 검토",
+        "푸드존·체험존 대기열이 주 통로를 막지 않도록 대기 공간 별도 확보",
+        "응급의료 구역에서 외부 진입로까지 장비와 차량이 접근할 수 있는 경로 확보",
+        "화장실·휴식 공간은 주요 구역에서 찾기 쉽도록 안내 표지 계획",
+        "실제 행사 전 관할 기관, 시설 관리자, 안전 담당자의 검토 및 현장 실측 진행"
+    ]
+    for item in checks:
+        st.checkbox(item, value=False, key="check_" + hashlib.md5(item.encode()).hexdigest()[:8])
+
+    export_data = {**d, "generated_at": datetime.now().isoformat(timespec="minutes"),
+                   "area_m2": d["width"]*d["depth"], "demo_scores": scores,
+                   "zones": ["무대", "관람석", "연대·협력존", "체험존", "푸드존", "휴식존", "운영본부", "응급의료", "화장실"],
+                   "additional_requirements": d["notes"]}
+    st.download_button("🧾 설계 조건 JSON 다운로드",
+                       data=json.dumps(export_data, ensure_ascii=False, indent=2),
+                       file_name="event_design.json", mime="application/json")
+    
+    if st.session_state.history:
+        with st.expander("🕘 현재 세션의 설계 기록"):
+            st.dataframe(st.session_state.history, use_container_width=True)
+            st.download_button("설계 기록 CSV 다운로드",
+                               data=__import__("pandas").DataFrame(st.session_state.history).to_csv(index=False).encode("utf-8-sig"),
+                               file_name="event_design_history.csv", mime="text/csv")
+
+# ==========================================
+# 3. AI 설계 프로세스 화면 (Process Page)
+# ==========================================
+elif st.session_state['page'] == 'process':
+    st.markdown("## ⚙️ AI 행사 설계 프로세스 (Workflow)")
+    st.caption("기획부터 최종 최적화 설계안 도출까지의 전체 운영 흐름도입니다.")
+
+    col_w1, col_w2, col_w3, col_w4, col_w5 = st.columns(5)
+    with col_w1:
+        st.markdown("""
+            <div class="custom-card" style="text-align: center; min-height: 200px;">
+                <h3>📋</h3>
+                <h4>1단계: 정보 입력</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">예산, 목적, 예상 관람객 및 맞춤 부스 요구사항 입력</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with col_w2:
+        st.markdown("""
+            <div class="custom-card" style="text-align: center; min-height: 200px;">
+                <h3>🌐</h3>
+                <h4>2단계: 디지털 트윈</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">장소 지형 데이터를 바탕으로 3D 가상 공간 구축</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with col_w3:
+        st.markdown("""
+            <div class="custom-card" style="text-align: center; min-height: 200px;">
+                <h3>🤖</h3>
+                <h4>3단계: 자동 배치</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">수천 개의 행사 배치안 및 강화학습 시뮬레이션 수행</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with col_w4:
+        st.markdown("""
+            <div class="custom-card" style="text-align: center; min-height: 200px;">
+                <h3>🚑</h3>
+                <h4>4단계: 다목적 최적화</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">군중 이동 동선 분석, 병목 예방 및 응급 경로 최적화</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with col_w5:
+        st.markdown("""
+            <div class="custom-card" style="text-align: center; min-height: 200px;">
+                <h3>📄</h3>
+                <h4>5단계: XAI 리포트</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">설명 가능한 AI(XAI) 근거 및 최종 비교 리포트 출력</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("💡 **운영자 기대 효과:** 운영자는 객관적인 데이터를 기반으로 안전하고 효율적인 대규모 행사를 신속하게 기획할 수 있습니다.")
+
+# ==========================================
+# 4. 시스템 설정 화면 (Settings Page)
+# ==========================================
+elif st.session_state['page'] == 'settings':
+    st.markdown("## ⚙️ 시스템 설정 및 관리")
+
+    with st.container():
+        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+        st.subheader("👤 계정 및 사용자 프로필")
+        st.session_state['username'] = st.text_input("사용자 이름", value=st.session_state['username'])
+        st.text_input("소속 부서 / 조직", value="이벤트 기획 1팀")
+        st.text_input("이메일 주소", value="user@event-on.ai")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+        st.subheader("🖥️ AI 디지털 트윈 엔진 옵션")
+        st.toggle("도면 내 레이블 및 좌표 가이드 표시", value=True)
+        st.toggle("실시간 군중 시뮬레이션 자동 실행", value=True)
+        st.selectbox("AI 추론 모델 선택", ["EventOn-Engine v4.2 (최신/권장)", "EventOn-Lite"])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    if st.button("로그아웃", type="primary"):
+        st.session_state['logged_in'] = False
+        st.session_state['page'] = 'home'
+        st.rerun()

@@ -11,7 +11,6 @@ from matplotlib.patches import Polygon, Rectangle, Circle, FancyArrowPatch
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Streamlit 페이지 설정
 st.set_page_config(
     page_title="이벤트 온 (Event-On) - AI 행사 자동 설계 플랫폼",
     page_icon="🎪",
@@ -19,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Korean font fallback
 plt.rcParams["axes.unicode_minus"] = False
 
 COLORS = {
@@ -34,7 +32,6 @@ ZONE_ICONS = {
 }
 
 def project(x, y, z=0):
-    """Simple axonometric projection for a presentation-style site plan."""
     return (x - y * 0.52, (x + y) * 0.28 - z)
 
 def poly3(ax, pts, color, edge="#59636B", lw=0.9, alpha=1, zorder=2):
@@ -45,7 +42,7 @@ def poly3(ax, pts, color, edge="#59636B", lw=0.9, alpha=1, zorder=2):
 def block(ax, x, y, w, d, h, color, label, fontsize=8):
     poly3(ax, [(x,y,h),(x+w,y,h),(x+w,y+d,h),(x,y+d,h)], color, zorder=6)
     front = [(x,y,0),(x+w,y,0),(x+w,y,h),(x,y,h)]
-    side = [(x+w,y,0),(x+w,y+d,0),(x+w,y+d,h),(x+w,y,h)]
+    side = [(x+w,y,0),(x+w,y+d,0),(x+w,y+d,h),(x,y,h)]
     poly3(ax, front, color, edge="#475569", zorder=4)
     poly3(ax, side, "#8B969E" if color != "#8B969E" else "#68747D", edge="#475569", zorder=5)
     cx, cy = project(x+w/2, y+d/2, h+0.02)
@@ -143,7 +140,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     fig.subplots_adjust(left=.02,right=.83,top=.98,bottom=.03)
     return fig
 
-# 커스텀 스타일 정의 (사이드바 상단 고정 및 하단 고정 완벽 적용)
 st.markdown("""
     <style>
     .stApp {
@@ -158,29 +154,11 @@ st.markdown("""
         border: 1px solid #E2E8F0;
         margin-bottom: 20px;
     }
-    .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.82rem;
-        font-weight: 700;
-    }
-    .badge-excellent { background-color: #DCFCE7; color: #15803D; }
-    .badge-good { background-color: #DBEAFE; color: #1E40AF; }
-    .badge-warning { background-color: #FEF3C7; color: #B45309; }
-    .reason-box {
-        background-color: #F0F9FF;
-        border-left: 4px solid #0284C7;
-        padding: 16px;
-        border-radius: 12px;
-        margin-top: 10px;
-        color: #0F172A;
-    }
     .stButton>button {
         border-radius: 10px;
         font-weight: 600;
     }
-    /* 사이드바 메인보드 및 메뉴를 맨 위로 고정, 하단 프로필과 완벽 분리 */
+    /* 사이드바 상단 고정 */
     [data-testid="stSidebar"] > div:first-child {
         display: flex;
         flex-direction: column;
@@ -190,7 +168,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태 초기화
 if 'page' not in st.session_state:
     st.session_state['page'] = 'home'
 if 'logged_in' not in st.session_state:
@@ -206,7 +183,7 @@ if "design" not in st.session_state:
         "age": "전 연령", "ticket": "무료", "notes": "중앙 관람 구역 확보", "zone_count": 7
     }
 
-# 사이드바 구성 (메인보드/메뉴를 맨 위에 배치하고 프로필을 맨 아래로 고정)
+# 1. 사이드바 (메인보드/메뉴 맨 위 배치 복원)
 with st.sidebar:
     with st.container():
         if st.button("🎪 이벤트 온 (Event-On)", key="logo_btn", use_container_width=True, type="primary"):
@@ -233,7 +210,6 @@ with st.sidebar:
                 st.session_state['logged_in'] = False
                 st.rerun()
 
-# 상단 헤더 영역
 top_col1, top_col2 = st.columns([3, 1])
 with top_col1:
     st.title("🎪 이벤트 온 (Event-On)")
@@ -254,15 +230,12 @@ with top_col2:
 
 st.divider()
 
-# ==========================================
-# 1. 홈 화면 (Home Page - AI 어시스턴트 및 Archisketch 3D 뷰어 포함)
-# ==========================================
 if st.session_state['page'] == 'home':
     st.markdown("## 📊 AI 스마트 공간 설계 대시보드")
     st.caption("실시간 대화형 AI 어시스턴트와 Archisketch 3D 디지털 트윈 연동 시스템입니다.")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. AI 어시스턴트 입력창 상단 배치
+    # 4. AI 어시스턴트 메인 화면 투입
     with st.container():
         st.markdown("""
         <div style="background: linear-gradient(135deg, #f8fafc, #eff6ff); border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
@@ -291,7 +264,7 @@ if st.session_state['page'] == 'home':
 
     st.markdown("---")
 
-    # 5. 3D 디지털 트윈 공간: 요청하신 Archisketch 지도 링크 연동 iframe
+    # 5. 3D 디지털 트윈: https://maps.archisketch.com/ 연동 iframe
     st.markdown("### 🧊 3D 디지털 트윈 뷰어 (Archisketch 연동)")
     st.caption("아키스케치(Archisketch) 플랫폼 공간 뷰어를 통해 실시간 3D 가상 공간을 체험할 수 있습니다.")
     components.iframe("https://maps.archisketch.com/", height=650, scrolling=True)
@@ -307,9 +280,6 @@ if st.session_state['page'] == 'home':
             st.session_state['page'] = 'process'
             st.rerun()
 
-# ==========================================
-# 2. 행사장 설계 스튜디오 (Studio Page)
-# ==========================================
 elif st.session_state['page'] == 'studio':
     st.markdown("## 📐 행사장 공간 기획 · 배치 시안 스튜디오")
     st.info("행사 조건을 입력하면 구역 배치가 반영된 **아이소메트릭(입체 투시) 스타일 행사장 마스터플랜**을 생성합니다.")
@@ -375,7 +345,7 @@ elif st.session_state['page'] == 'studio':
     m3.metric("출입구/출구", f'{d["gates"]}개')
     m4.metric("운영 시간", d["duration"])
     
-    # 3. AI 평가 결과 & XAI 항목 완전 삭제 완료
+    # 3. AI 평가 결과 및 XAI 완벽 삭제 완료 (지표 계산 함수 및 출력 생략)
     st.markdown("---")
     st.subheader("4. 배치 원칙 및 운영 체크리스트")
     checks = [
@@ -402,9 +372,6 @@ elif st.session_state['page'] == 'studio':
                                data=__import__("pandas").DataFrame(st.session_state.history).to_csv(index=False).encode("utf-8-sig"),
                                file_name="event_design_history.csv", mime="text/csv")
 
-# ==========================================
-# 3. AI 설계 프로세스 화면 (Process Page)
-# ==========================================
 elif st.session_state['page'] == 'process':
     st.markdown("## ⚙️ AI 행사 설계 프로세스 (Workflow)")
     st.caption("기획부터 최종 최적화 설계안 도출까지의 전체 운영 흐름도입니다.")
@@ -446,9 +413,6 @@ elif st.session_state['page'] == 'process':
     st.markdown("<br>", unsafe_allow_html=True)
     st.info("💡 **운영자 기대 효과:** 운영자는 객관적인 데이터를 기반으로 안전하고 효율적인 대규모 행사를 신속하게 기획할 수 있습니다.")
 
-# ==========================================
-# 4. 시스템 설정 화면 (Settings Page)
-# ==========================================
 elif st.session_state['page'] == 'settings':
     st.markdown("## ⚙️ 시스템 설정 및 관리")
 

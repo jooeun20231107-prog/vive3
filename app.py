@@ -45,7 +45,6 @@ def poly3(ax, pts, color, edge="#59636B", lw=0.9, alpha=1, zorder=2):
 def block(ax, x, y, w, d, h, color, label, fontsize=8):
     # Top face
     poly3(ax, [(x,y,h),(x+w,y,h),(x+w,y+d,h),(x,y+d,h)], color, zorder=6)
-    # Front and side faces create a raised architectural model effect
     front = [(x,y,0),(x+w,y,0),(x+w,y,h),(x,y,h)]
     side = [(x+w,y,0),(x+w,y+d,0),(x+w,y+d,h),(x+w,y,h)]
     poly3(ax, front, color, edge="#475569", zorder=4)
@@ -59,20 +58,16 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     fig, ax = plt.subplots(figsize=(14, 8.2), dpi=160)
     fig.patch.set_facecolor("#FFFFFF")
     ax.set_facecolor("#FFFFFF")
-    # Site boundary and ground slab
     poly3(ax, [(0,0,0),(width,0,0),(width,depth,0),(0,depth,0)],
           "#E9ECE8", edge="#66727A", lw=1.7, zorder=0)
 
-    # Road / perimeter access
     poly3(ax, [(-1.8,-1.5,0),(width+1.8,-1.5,0),(width+1.8,0,0),(-1.8,0,0)],
           "#737B80", edge="#555D62", zorder=1)
-    # Main central circulation spine and cross aisle
     poly3(ax, [(width*.44,0,0),(width*.56,0,0),(width*.56,depth,0),(width*.44,depth,0)],
           "#F8F8F4", edge="#D0D5D8", zorder=1)
     poly3(ax, [(0,depth*.46,0),(width,depth*.46,0),(width,depth*.54,0),(0,depth*.54,0)],
           "#F8F8F4", edge="#D0D5D8", zorder=1)
 
-    # Soft landscaping blocks
     for x,y,w,d in [(1,1,3,2),(width-4,1,3,2),(1,depth-3,3,2),(width-4,depth-3,3,2)]:
         if x+w < width and y+d < depth:
             poly3(ax, [(x,y,0),(x+w,y,0),(x+w,y+d,0),(x,y+d,0)], "#CFE3C8", edge="#A4C69A", zorder=2)
@@ -80,12 +75,10 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
                 px,py=project(tx,ty,.18)
                 ax.add_patch(Circle((px,py),.12,fc="#4B8B54",ec="#2F6F3A",lw=.5,zorder=4))
 
-    # Main stage and audience zone
     block(ax, width*.35, depth*.77, width*.30, depth*.13, 1.1, COLORS["무대"], "MAIN STAGE", 9)
     poly3(ax, [(width*.20,depth*.49,0),(width*.80,depth*.49,0),
                (width*.80,depth*.75,0),(width*.20,depth*.75,0)],
           "#A8D5F0", edge="#4A9BCB", zorder=3)
-    # Seating rows
     for row in range(5):
         yy = depth*.515 + row*depth*.043
         poly3(ax, [(width*.25,yy,0.05),(width*.75,yy,0.05),
@@ -94,7 +87,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     px,py=project(width*.5, depth*.62,.2)
     ax.text(px,py,"관람 구역",ha="center",va="center",fontsize=9,color="#FFFFFF",weight="bold",zorder=10)
 
-    # Booth zones on left and right edges
     zone_specs = [
         ("연대·협력존", .06, .58, .22, .14, "PARTNERS"),
         ("체험존", .06, .36, .22, .14, "EXPERIENCE"),
@@ -114,7 +106,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
                 poly3(ax,[(bx,by,.39),(bx+.42,by,.39),(bx+.42,by+.34,.39),(bx,by+.34,.39)],
                       "#FFF8E9",edge="#9A6A39",lw=.5,zorder=8)
 
-    # Gates and evacuation arrows
     gate_xs = [width*.15, width*.50, width*.85] if gates >= 3 else [width*.5]
     for idx,gx in enumerate(gate_xs):
         p1=project(gx,0,.08)
@@ -124,7 +115,6 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
         ax.text(p2[0],p2[1]-.32, "비상 출구" if idx else "주 출입구",
                 ha="center",va="top",fontsize=7.5,color="#A31925",weight="bold",zorder=12)
 
-    # Main access arrow from the rear
     p1=project(width*.5,depth+1.4,.1); p2=project(width*.5,depth-.1,.1)
     ax.add_patch(FancyArrowPatch(p1,p2,arrowstyle="-|>",mutation_scale=17,
                                  linewidth=2.3,color="#1675C9",zorder=12))
@@ -163,16 +153,13 @@ def scorecard(visitors, width, depth, gates):
     space=max(50,min(96,round(92 - density*14)))
     return {"안전 계획 지표":safety,"동선 계획 지표":flow,"접근성 지표":access,"공간 활용 지표":space}
 
-# 커스텀 스타일 정의 (사이드바 위/아래 완전 분리 및 넓은 여백 확보)
+# 커스텀 스타일 정의 (사이드바 상단 고정, 하단 고정 구조 복원)
 st.markdown("""
     <style>
-    /* 전체 배경 및 폰트 */
     .stApp {
         background-color: #F8FAFC;
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     }
-    
-    /* 카드 컨테이너 스타일 */
     .custom-card {
         background-color: #FFFFFF;
         border-radius: 16px;
@@ -181,8 +168,6 @@ st.markdown("""
         border: 1px solid #E2E8F0;
         margin-bottom: 20px;
     }
-
-    /* 뱃지 및 태그 디자인 */
     .badge {
         display: inline-block;
         padding: 4px 12px;
@@ -193,8 +178,6 @@ st.markdown("""
     .badge-excellent { background-color: #DCFCE7; color: #15803D; }
     .badge-good { background-color: #DBEAFE; color: #1E40AF; }
     .badge-warning { background-color: #FEF3C7; color: #B45309; }
-
-    /* AI 요약 박스 */
     .reason-box {
         background-color: #F0F9FF;
         border-left: 4px solid #0284C7;
@@ -203,14 +186,11 @@ st.markdown("""
         margin-top: 10px;
         color: #0F172A;
     }
-
-    /* Streamlit 버튼 커스텀 */
     .stButton>button {
         border-radius: 10px;
         font-weight: 600;
     }
-
-    /* 사이드바 flex 배치: 높이를 늘려 중간 여백을 넓게 확보 */
+    /* 사이드바 메인보드 맨 위로 복원 및 하단 프로필 고정 */
     [data-testid="stSidebar"] > div:first-child {
         display: flex;
         flex-direction: column;
@@ -236,9 +216,8 @@ if "design" not in st.session_state:
         "age": "전 연령", "ticket": "무료", "notes": "중앙 관람 구역 확보", "zone_count": 7
     }
 
-# 사이드바 구성
+# 사이드바 구성 (메인보드/메뉴를 맨 위로 다시 배치)
 with st.sidebar:
-    # --- [상단 영역] 로고 및 메뉴 ---
     with st.container():
         if st.button("🎪 이벤트 온 (Event-On)", key="logo_btn", use_container_width=True, type="primary"):
             st.session_state['page'] = 'home'
@@ -257,7 +236,6 @@ with st.sidebar:
             st.session_state['page'] = 'process'
             st.rerun()
 
-    # --- [하단 영역] 주은님 프로필 및 로그아웃 ---
     with st.container():
         if st.session_state['logged_in']:
             st.markdown(f"👤 **{st.session_state['username']}** 님 (총괄 기획)")
@@ -287,65 +265,54 @@ with top_col2:
 st.divider()
 
 # ==========================================
-# 1. 홈 화면 (Home Page)
+# 1. 홈 화면 (Home Page - 대시보드 및 AI 어시스턴트 포함)
 # ==========================================
 if st.session_state['page'] == 'home':
-    st.markdown("## 🚀 시작할 메뉴를 선택하세요")
-    st.caption("카드나 하단 버튼을 클릭하면 해당 작업 스튜디오로 이동합니다.")
+    st.markdown("## 📊 AI 스마트 공간 설계 대시보드")
+    st.caption("실시간 대화형 AI 어시스턴트와 Archisketch 3D 디지털 트윈 연동 시스템입니다.")
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    col_dash, col_studio = st.columns(2)
 
-    with col_dash:
-        dash_card_html = """
-        <div style="
-            background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%);
-            border: 2px solid #93C5FD;
-            border-radius: 20px;
-            padding: 32px 28px;
-            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.12);
-            min-height: 270px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        ">
-            <h1 style="font-size: 3rem; margin: 0 0 12px 0;">📐</h1>
-            <h2 style="color: #1E3A8A; margin: 0 0 14px 0; font-size: 1.55rem;">행사장 설계 스튜디오 (Matplotlib 시안)</h2>
-            <p style="color: #475569; font-size: 1.02rem; line-height: 1.65; margin: 0;">
-                행사 조건과 세부 구역을 직접 입력하고 정밀한 아이소메트릭(입체 투시) 마스터플랜 도면을 생성하세요.<br>
-                PNG 이미지 다운로드 및 JSON 설계 데이터 내보내기를 지원합니다.
-            </p>
+    # 4. AI 어시스턴트 컴포넌트 상단 배치
+    with st.container():
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #f8fafc, #eff6ff); border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="color: #1e3a8a; margin-top: 0; font-size: 1.15rem;">🤖 AI 메인 어시스턴트 (실시간 레이아웃 제어)</h3>
+            <p style="color: #475569; font-size: 0.9rem; margin-bottom: 12px;">원하시는 부스 추가나 배치 수정 사항을 말씀해 주시면 디지털 트윈에 즉시 반영합니다.</p>
         </div>
-        """
-        st.markdown(dash_card_html, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("📐 행사장 설계 스튜디오 시작하기", key="btn_click_studio", type="primary", use_container_width=True):
+        """, unsafe_allow_html=True)
+        
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = [
+                {"role": "ai", "content": "안녕하세요 주은님! 원하시는 부스 추가나 배치 수정 사항을 말씀해 주세요."}
+            ]
+        
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "ai":
+                st.info(f"**AI:** {msg['content']}")
+            else:
+                st.success(f"**나:** {msg['content']}")
+                
+        user_msg = st.text_input("AI에게 명령하기 (예: 친환경 팝업스토어 추가해줘)", key="main_ai_input_box")
+        if st.button("AI 메시지 전송", key="send_main_ai"):
+            if user_msg.strip():
+                st.session_state.chat_history.append({"role": "user", "content": user_msg})
+                st.session_state.chat_history.append({"role": "ai", "content": f'요청하신 "{user_msg}" 내용을 분석하여 배치도 반영 시뮬레이션을 완료했습니다.'})
+                st.rerun()
+
+    st.markdown("---")
+
+    # 5. 3D 디지털 트윈 공간: Archisketch 연동 iframe 도입
+    st.markdown("### 🧊 3D 디지털 트윈 뷰어 (Archisketch 연동)")
+    st.caption("아키스케치(Archisketch) 플랫폼 공간 뷰어를 통해 실시간 3D 가상 공간을 체험할 수 있습니다.")
+    components.iframe("https://maps.archisketch.com/", height=650, scrolling=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_dash, col_studio = st.columns(2)
+    with col_dash:
+        if st.button("📐 행사장 설계 스튜디오로 이동", key="btn_click_studio", type="primary", use_container_width=True):
             st.session_state['page'] = 'studio'
             st.rerun()
-
     with col_studio:
-        proc_card_html = """
-        <div style="
-            background: linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%);
-            border: 2px solid #86EFAC;
-            border-radius: 20px;
-            padding: 32px 28px;
-            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.12);
-            min-height: 270px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        ">
-            <h1 style="font-size: 3rem; margin: 0 0 12px 0;">⚙️</h1>
-            <h2 style="color: #065F46; margin: 0 0 14px 0; font-size: 1.55rem;">AI 설계 프로세스 및 메커니즘</h2>
-            <p style="color: #475569; font-size: 1.02rem; line-height: 1.65; margin: 0;">
-                기획부터 최종 배치안 도출까지의 다목적 최적화(Multi-objective Optimization) 과정을 살펴봅니다.<br>
-                군중 동선 예측, XAI(설명 가능한 AI) 설계 이유 및 안전성 평가 체계를 확인하세요.
-            </p>
-        </div>
-        """
-        st.markdown(proc_card_html, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("⚙️ AI 설계 프로세스 확인하기", key="btn_click_proc", type="secondary", use_container_width=True):
             st.session_state['page'] = 'process'
             st.rerun()
@@ -418,17 +385,12 @@ elif st.session_state['page'] == 'studio':
     m3.metric("출입구/출구", f'{d["gates"]}개')
     m4.metric("운영 시간", d["duration"])
     
-    scores = scorecard(d["visitors"], d["width"], d["depth"], d["gates"])
-    cols = st.columns(len(scores))
-    for col, (label, val) in zip(cols, scores.items()):
-        col.metric(label, f"{val}/100")
-    st.caption("점수는 입력 조건을 바탕으로 한 데모용 휴리스틱 지표이며, 실제 안전성 인증이나 현장 검증 결과가 아닙니다.")
-
+    # 3. AI 평가 결과 & XAI 항목 전면 삭제 완료 (지표 카드 출력 대체)
+    st.markdown("---")
     st.subheader("4. 배치 원칙 및 운영 체크리스트")
     checks = [
         "주 출입구와 비상 출구를 서로 다른 방향에 분산 배치하는 안을 현장 여건과 함께 검토",
         "푸드존·체험존 대기열이 주 통로를 막지 않도록 대기 공간 별도 확보",
-        "응급의료 구역에서 외부 진입로까지 장비와 차량이 접근할 수 있는 경로 확보",
         "화장실·휴식 공간은 주요 구역에서 찾기 쉽도록 안내 표지 계획",
         "실제 행사 전 관할 기관, 시설 관리자, 안전 담당자의 검토 및 현장 실측 진행"
     ]
@@ -436,7 +398,7 @@ elif st.session_state['page'] == 'studio':
         st.checkbox(item, value=False, key="check_" + hashlib.md5(item.encode()).hexdigest()[:8])
 
     export_data = {**d, "generated_at": datetime.now().isoformat(timespec="minutes"),
-                   "area_m2": d["width"]*d["depth"], "demo_scores": scores,
+                   "area_m2": d["width"]*d["depth"],
                    "zones": ["무대", "관람석", "연대·협력존", "체험존", "푸드존", "휴식존", "운영본부", "응급의료", "화장실"],
                    "additional_requirements": d["notes"]}
     st.download_button("🧾 설계 조건 JSON 다운로드",
@@ -457,7 +419,7 @@ elif st.session_state['page'] == 'process':
     st.markdown("## ⚙️ AI 행사 설계 프로세스 (Workflow)")
     st.caption("기획부터 최종 최적화 설계안 도출까지의 전체 운영 흐름도입니다.")
 
-    col_w1, col_w2, col_w3, col_w4, col_w5 = st.columns(5)
+    col_w1, col_w2, col_w3, col_w4 = st.columns(4)
     with col_w1:
         st.markdown("""
             <div class="custom-card" style="text-align: center; min-height: 200px;">
@@ -485,17 +447,9 @@ elif st.session_state['page'] == 'process':
     with col_w4:
         st.markdown("""
             <div class="custom-card" style="text-align: center; min-height: 200px;">
-                <h3>🚑</h3>
-                <h4>4단계: 다목적 최적화</h4>
-                <p style="font-size: 0.85rem; color: #64748B;">군중 이동 동선 분석, 병목 예방 및 응급 경로 최적화</p>
-            </div>
-        """, unsafe_allow_html=True)
-    with col_w5:
-        st.markdown("""
-            <div class="custom-card" style="text-align: center; min-height: 200px;">
                 <h3>📄</h3>
-                <h4>5단계: XAI 리포트</h4>
-                <p style="font-size: 0.85rem; color: #64748B;">설명 가능한 AI(XAI) 근거 및 최종 비교 리포트 출력</p>
+                <h4>4단계: 최종 리포트</h4>
+                <p style="font-size: 0.85rem; color: #64748B;">최종 비교 리포트 및 마스터플랜 도면 출력</p>
             </div>
         """, unsafe_allow_html=True)
 

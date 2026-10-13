@@ -43,7 +43,6 @@ def poly3(ax, pts, color, edge="#59636B", lw=0.9, alpha=1, zorder=2):
                          linewidth=lw, alpha=alpha, joinstyle="round", zorder=zorder))
 
 def block(ax, x, y, w, d, h, color, label, fontsize=8):
-    # Top face
     poly3(ax, [(x,y,h),(x+w,y,h),(x+w,y+d,h),(x,y+d,h)], color, zorder=6)
     front = [(x,y,0),(x+w,y,0),(x+w,y,h),(x,y,h)]
     side = [(x+w,y,0),(x+w,y+d,0),(x+w,y+d,h),(x+w,y,h)]
@@ -144,16 +143,7 @@ def draw_plan(name, venue_type, width, depth, visitors, vibe, indoor, gates, zon
     fig.subplots_adjust(left=.02,right=.83,top=.98,bottom=.03)
     return fig
 
-def scorecard(visitors, width, depth, gates):
-    area=width*depth
-    density=visitors/max(area,1)
-    safety=max(55,min(96,round(94 - max(0,density-0.5)*18 + min(gates,6)*1.2)))
-    flow=max(55,min(95,round(91 - max(0,density-0.4)*16)))
-    access=max(60,min(98,round(86 + min(gates,6)*2)))
-    space=max(50,min(96,round(92 - density*14)))
-    return {"안전 계획 지표":safety,"동선 계획 지표":flow,"접근성 지표":access,"공간 활용 지표":space}
-
-# 커스텀 스타일 정의 (사이드바 상단 고정, 하단 고정 구조 복원)
+# 커스텀 스타일 정의 (사이드바 상단 고정 및 하단 고정 완벽 적용)
 st.markdown("""
     <style>
     .stApp {
@@ -190,7 +180,7 @@ st.markdown("""
         border-radius: 10px;
         font-weight: 600;
     }
-    /* 사이드바 메인보드 맨 위로 복원 및 하단 프로필 고정 */
+    /* 사이드바 메인보드 및 메뉴를 맨 위로 고정, 하단 프로필과 완벽 분리 */
     [data-testid="stSidebar"] > div:first-child {
         display: flex;
         flex-direction: column;
@@ -216,7 +206,7 @@ if "design" not in st.session_state:
         "age": "전 연령", "ticket": "무료", "notes": "중앙 관람 구역 확보", "zone_count": 7
     }
 
-# 사이드바 구성 (메인보드/메뉴를 맨 위로 다시 배치)
+# 사이드바 구성 (메인보드/메뉴를 맨 위에 배치하고 프로필을 맨 아래로 고정)
 with st.sidebar:
     with st.container():
         if st.button("🎪 이벤트 온 (Event-On)", key="logo_btn", use_container_width=True, type="primary"):
@@ -265,14 +255,14 @@ with top_col2:
 st.divider()
 
 # ==========================================
-# 1. 홈 화면 (Home Page - 대시보드 및 AI 어시스턴트 포함)
+# 1. 홈 화면 (Home Page - AI 어시스턴트 및 Archisketch 3D 뷰어 포함)
 # ==========================================
 if st.session_state['page'] == 'home':
     st.markdown("## 📊 AI 스마트 공간 설계 대시보드")
     st.caption("실시간 대화형 AI 어시스턴트와 Archisketch 3D 디지털 트윈 연동 시스템입니다.")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. AI 어시스턴트 컴포넌트 상단 배치
+    # 4. AI 어시스턴트 입력창 상단 배치
     with st.container():
         st.markdown("""
         <div style="background: linear-gradient(135deg, #f8fafc, #eff6ff); border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
@@ -301,7 +291,7 @@ if st.session_state['page'] == 'home':
 
     st.markdown("---")
 
-    # 5. 3D 디지털 트윈 공간: Archisketch 연동 iframe 도입
+    # 5. 3D 디지털 트윈 공간: 요청하신 Archisketch 지도 링크 연동 iframe
     st.markdown("### 🧊 3D 디지털 트윈 뷰어 (Archisketch 연동)")
     st.caption("아키스케치(Archisketch) 플랫폼 공간 뷰어를 통해 실시간 3D 가상 공간을 체험할 수 있습니다.")
     components.iframe("https://maps.archisketch.com/", height=650, scrolling=True)
@@ -385,7 +375,7 @@ elif st.session_state['page'] == 'studio':
     m3.metric("출입구/출구", f'{d["gates"]}개')
     m4.metric("운영 시간", d["duration"])
     
-    # 3. AI 평가 결과 & XAI 항목 전면 삭제 완료 (지표 카드 출력 대체)
+    # 3. AI 평가 결과 & XAI 항목 완전 삭제 완료
     st.markdown("---")
     st.subheader("4. 배치 원칙 및 운영 체크리스트")
     checks = [
